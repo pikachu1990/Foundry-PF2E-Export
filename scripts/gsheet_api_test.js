@@ -34,3 +34,6 @@ async function testGoogleSheetAPI() {
         ui.notifications.warn("❌ Failed to update Google Sheet. Check console for details.");
     }
 }
+
+// ✅ Ensure the function is globally available in Foundry
+globalThis.testGoogleSheetAPI = testGoogleSheetAPI;
