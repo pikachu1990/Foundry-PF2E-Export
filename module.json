@@ -2,12 +2,12 @@
   "id": "foundry-pf2e-export",
   "title": "Foundry PF2E Details Export",
   "description": "Exports character wealth and details for external tools.",
-  "version": "1.0.1",
+  "version": "1.0.8",
   "authors": [{ "name": "pikachu1990" }],
   "esmodules": [
-      "scripts/details-export.js",
-      "scripts/gsheet_api_test.js"
-  ]
+    "scripts/details-export.js",
+    "scripts/gsheet_api_test.js"
+  ],
   "compatibility": {
     "minimum": "11",
     "verified": "11"
