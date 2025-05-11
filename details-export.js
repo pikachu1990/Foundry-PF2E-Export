@@ -1,16 +1,13 @@
 Hooks.once('ready', async function () {
     console.log("✅ PF2e Details Exporter Loaded!");
+    ui.notifications.info("📁 Type /export-wealth in chat to export character details.");
+});
 
-    // Add Export Button to Settings Sidebar
-    const settingsSidebar = document.querySelector("#settings");
-    if (settingsSidebar) {
-        const exportButton = document.createElement("button");
-        exportButton.innerText = "📁 Export Character Details";
-        exportButton.style.margin = "10px";
-        exportButton.onclick = () => exportCharacterDetails();
-
-        const header = settingsSidebar.querySelector(".directory-header");
-        if (header) header.appendChild(exportButton);
+// Chat command trigger
+Hooks.on('chatMessage', (chatLog, messageText) => {
+    if (messageText.trim() === "/export-wealth") {
+        exportCharacterDetails();
+        return false; // Prevents the message from showing in chat
     }
 });
 
@@ -46,7 +43,6 @@ function exportCharacterDetails() {
                 cp: coins.cp ?? 0,
                 pp: coins.pp ?? 0
             }
-            // 📌 You can add more fields here later!
         };
     });
 
