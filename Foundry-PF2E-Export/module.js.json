@@ -2,14 +2,15 @@
   "id": "foundry-pf2e-export",
   "title": "Foundry PF2E Details Export",
   "description": "Exports character wealth and details for external tools.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "authors": [{ "name": "pikachu1990" }],
-  "esmodules": ["scripts/details-export.js"]
+  "esmodules": ["scripts/details-export.js"],
   "compatibility": {
     "minimum": "11",
     "verified": "11"
   },
   "system": ["pf2e"],
   "manifest": "https://raw.githubusercontent.com/pikachu1990/Foundry-PF2E-Export/main/module.json",
-  "download": "https://github.com/pikachu1990/Foundry-PF2E-Export/archive/refs/heads/main.zip"
+  "download": "https://github.com/pikachu1990/Foundry-PF2E-Export/archive/refs/heads/main.zip",
+  "_comment": "testver0.1"
 }
