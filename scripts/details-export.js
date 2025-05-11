@@ -1,13 +1,24 @@
-const MODULE_VERSION = "1.0.5";
+const MODULE_VERSION = "1.0.8";
+
+// === CONFIGURATION ===
+const FOLDER_NAME = "Players"; // ✅ Change this to the name of the folder you want to filter by
 
 // ✅ Confirm module script loaded
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
 
-// === EXPORT FUNCTION ===
+// === EXPORT FUNCTION (Filtered and Clean Output) ===
 function exportCharacterWealth() {
     console.log("📦 Exporting character wealth...");
 
-    const actors = game.actors.filter(a => a.type === "character");
+    const targetFolder = game.folders.find(f => f.name === FOLDER_NAME && f.type === "Actor");
+    if (!targetFolder) {
+        ui.notifications.warn(`⚠️ Folder "${FOLDER_NAME}" not found. Export aborted.`);
+        console.warn(`⚠️ Folder "${FOLDER_NAME}" not found. Please check the FOLDER_NAME config.`);
+        return;
+    }
+
+    const actors = targetFolder.contents.filter(a => a.type === "character");
+
     const characterData = actors.map(actor => {
         const coins = actor.system?.currency ?? {};
         const totalCurrency =
@@ -27,17 +38,7 @@ function exportCharacterWealth() {
 
         return {
             name: actor.name,
-            id: actor.id,
-            level: actor.system?.details?.level?.value ?? "Unknown",
-            ancestry: actor.system?.details?.ancestry?.value ?? "Unknown",
-            class: actor.system?.details?.class?.value ?? "Unknown",
-            totalWealth: Number(totalWealth.toFixed(2)),
-            currency: {
-                gp: coins.gp ?? 0,
-                sp: coins.sp ?? 0,
-                cp: coins.cp ?? 0,
-                pp: coins.pp ?? 0
-            }
+            totalWealth: Math.floor(totalWealth)
         };
     });
 
@@ -69,27 +70,6 @@ Hooks.once('ready', () => {
         console.log(`📖 Current Module Version: ${MODULE_VERSION}`);
         ui.notifications.info(`📖 Current Module Version: ${MODULE_VERSION}`);
     };
-});
-
-// === BUTTON TRIGGER ===
-Hooks.on('renderSidebarTab', (app, html) => {
-    if (app.id !== "settings") return;
-
-    console.log("⚙️ Settings Sidebar Rendered. Adding Export Button...");
-
-    if (!html[0].querySelector("#export-button")) {
-        const exportButton = document.createElement("button");
-        exportButton.id = "export-button";
-        exportButton.innerText = "📁 Export Character Wealth";
-        exportButton.style.margin = "10px";
-        exportButton.onclick = () => {
-            console.log("🧩 Triggered via Settings button.");
-            exportCharacterWealth();
-        };
-
-        const header = html[0].querySelector(".directory-header");
-        if (header) header.appendChild(exportButton);
-    }
 });
 
 // === CHAT COMMAND TRIGGER ===
