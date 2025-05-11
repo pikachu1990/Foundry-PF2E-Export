@@ -1,8 +1,8 @@
 const GSheetConfig = {
-    tokenAPIUrl: "http://<YOUR-BOT-SERVER-IP>:8000/get-token", // ✅ Replace with your bot's IP or domain
-    spreadsheetId: "19WLjaJvyk3K02ink6Y8mwPvPCqk_AsH3ZHD49TUvGSQ",
-    targetRange: "Characters!B2",
-    value: "A"
+    tokenAPIUrl: "http://45.43.163.166:8000/get-token", // ✅ Token API endpoint with correct IP and port
+    spreadsheetId: "19WLjaJvyk3K02ink6Y8mwPvPCqk_AsH3ZHD49TUvGSQ", // Your Google Sheet ID
+    targetRange: "Characters!B2", // Target cell in the sheet
+    value: "A" // Value to write
 };
 
 async function testGoogleSheetAPI() {
@@ -46,5 +46,5 @@ async function testGoogleSheetAPI() {
     }
 }
 
-// ✅ Register the function globally for Foundry console access
+// ✅ Register globally for Foundry console access
 globalThis.testGoogleSheetAPI = testGoogleSheetAPI;
