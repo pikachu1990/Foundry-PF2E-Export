@@ -1,5 +1,5 @@
 const GSheetConfig = {
-    tokenAPIUrl: "http://45.43.163.166:25593/get-token", // ✅ Token API endpoint with correct IP and port
+    tokenAPIUrl: "http://45.43.163.166:8000/get-token", // ✅ Token API endpoint with correct IP and port
     spreadsheetId: "19WLjaJvyk3K02ink6Y8mwPvPCqk_AsH3ZHD49TUvGSQ", // Your Google Sheet ID
     targetRange: "Characters!B2", // Target cell in the sheet
     value: "A" // Value to write
