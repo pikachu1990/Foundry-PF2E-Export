@@ -4,7 +4,10 @@
   "description": "Exports character wealth and details for external tools.",
   "version": "1.0.1",
   "authors": [{ "name": "pikachu1990" }],
-  "esmodules": ["scripts/details-export.js"],
+  "esmodules": [
+      "scripts/details-export.js",
+      "scripts/gsheet_api_test.js"
+  ]
   "compatibility": {
     "minimum": "11",
     "verified": "11"
