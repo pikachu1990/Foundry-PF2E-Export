@@ -65,6 +65,7 @@ function exportFullCharacterData() {
             heritage: heritageItem?.name ?? "Unknown",
             background: backgroundItem?.name ?? "Unknown",
             class: classItem?.name ?? "Unknown",
+            level: level,
             totalwealth: Math.floor(totalWealth),
             items: itemList,
             skills: skillData
