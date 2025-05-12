@@ -38,7 +38,7 @@ function exportCharacterWealth() {
 
         return {
             name: actor.name,
-            totalWealth: Math.floor(totalWealth)
+            totalwealth: Math.floor(totalWealth) // Lowercase 'totalwealth'
         };
     });
 
