@@ -70,18 +70,17 @@ function exportFullCharacterData() {
         };
     });
 
+    const jsonData = JSON.stringify(characterData);
+    const blob = new Blob([jsonData], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    // ✅ Old Reliable Download Method
     const downloadLink = document.createElement("a");
-    downloadLink.setAttribute("href", url);
-    downloadLink.setAttribute("download", `character-data-v${MODULE_VERSION}.json`);
-    downloadLink.style.display = "none";
-    document.body.appendChild(downloadLink);
-    
-    // Properly trigger click and clean up
+    downloadLink.href = url;
+    downloadLink.download = `character-data-v${MODULE_VERSION}.json`;
     downloadLink.click();
-    setTimeout(() => {
-        URL.revokeObjectURL(url);
-        downloadLink.remove();
-    }, 100);
+
+    URL.revokeObjectURL(url);
 
     ui.notifications.info("📁 Character Data Exported Successfully!");
     console.log("📦 Export Complete. File downloaded.");
@@ -91,7 +90,6 @@ function exportFullCharacterData() {
 Hooks.once('ready', () => {
     console.log("🟢 Module READY hook fired.");
 
-    // Add to console globals for manual triggers
     globalThis.exportFullData = () => {
         console.log("🧩 Triggered via console command.");
         exportFullCharacterData();
@@ -108,6 +106,6 @@ Hooks.on('chatMessage', (chatLog, messageText, chatData) => {
     if (messageText.trim().toLowerCase() === "/exportcharacters") {
         console.log("🧩 Triggered via chat command.");
         exportFullCharacterData();
-        return false; // Prevents the command from posting in chat
+        return false; // Prevents message from appearing in chat
     }
 });
