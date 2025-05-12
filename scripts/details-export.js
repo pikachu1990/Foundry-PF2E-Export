@@ -70,18 +70,18 @@ function exportFullCharacterData() {
         };
     });
 
-    const jsonData = JSON.stringify(characterData);
-    const blob = new Blob([jsonData], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-
     const downloadLink = document.createElement("a");
-    downloadLink.href = url;
-    downloadLink.download = `character-data-v${MODULE_VERSION}.json`;
+    downloadLink.setAttribute("href", url);
+    downloadLink.setAttribute("download", `character-data-v${MODULE_VERSION}.json`);
+    downloadLink.style.display = "none";
     document.body.appendChild(downloadLink);
+    
+    // Properly trigger click and clean up
     downloadLink.click();
-    document.body.removeChild(downloadLink);
-
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+        downloadLink.remove();
+    }, 100);
 
     ui.notifications.info("📁 Character Data Exported Successfully!");
     console.log("📦 Export Complete. File downloaded.");
