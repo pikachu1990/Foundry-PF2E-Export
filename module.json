@@ -5,8 +5,7 @@
   "version": "1.0.8",
   "authors": [{ "name": "pikachu1990" }],
   "esmodules": [
-    "scripts/details-export.js",
-    "scripts/gsheet_api_test.js"
+    "scripts/details-export.js"
   ],
   "compatibility": {
     "minimum": "11",
