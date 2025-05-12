@@ -21,6 +21,7 @@ function exportFullCharacterData() {
         const heritageItem = actor.items.find(i => i.type === "heritage");
         const backgroundItem = actor.items.find(i => i.type === "background");
         const classItem = actor.items.find(i => i.type === "class");
+        const level = actor.system?.details?.level?.value ?? 0;
 
         // === Wealth Calculation ===
         const coins = actor.system?.currency ?? {};
