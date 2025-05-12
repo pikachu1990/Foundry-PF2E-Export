@@ -1,14 +1,11 @@
-const MODULE_VERSION = "1.0.8";
+const MODULE_VERSION = "2.0.0";
+const FOLDER_NAME = "Players"; // ✅ Only export characters from this folder
 
-// === CONFIGURATION ===
-const FOLDER_NAME = "Players"; // ✅ Change this to the name of the folder you want to filter by
-
-// ✅ Confirm module script loaded
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
 
-// === EXPORT FUNCTION (Filtered and Clean Output) ===
-function exportCharacterWealth() {
-    console.log("📦 Exporting character wealth...");
+// === EXPORT FUNCTION ===
+function exportFullCharacterData() {
+    console.log("📦 Exporting full character data...");
 
     const targetFolder = game.folders.find(f => f.name === FOLDER_NAME && f.type === "Actor");
     if (!targetFolder) {
@@ -20,11 +17,17 @@ function exportCharacterWealth() {
     const actors = targetFolder.contents.filter(a => a.type === "character");
 
     const characterData = actors.map(actor => {
+        const ancestryItem = actor.items.find(i => i.type === "ancestry");
+        const heritageItem = actor.items.find(i => i.type === "heritage");
+        const backgroundItem = actor.items.find(i => i.type === "background");
+        const classItem = actor.items.find(i => i.type === "class");
+
+        // === Wealth Calculation ===
         const coins = actor.system?.currency ?? {};
         const totalCurrency =
-            (coins.gp ?? 0) +
-            (coins.sp ?? 0) / 10 +
-            (coins.cp ?? 0) / 100 +
+            (coins.gp ?? 0) + 
+            (coins.sp ?? 0) / 10 + 
+            (coins.cp ?? 0) / 100 + 
             (coins.pp ?? 0) * 10;
 
         let totalItemValue = 0;
@@ -36,34 +39,62 @@ function exportCharacterWealth() {
 
         const totalWealth = totalCurrency + totalItemValue;
 
+        // === Uncommon+ Items ===
+        const rarities = ["uncommon", "rare", "unique"];
+        const filteredItems = actor.items.filter(item => 
+            rarities.includes(item.rarity?.toLowerCase() ?? "") &&
+            ["weapon", "armor", "equipment", "consumable", "treasure"].includes(item.type)
+        );
+
+        const itemList = filteredItems.map(item => {
+            const quantity = item.system?.quantity ?? 1;
+            return quantity > 1 ? `${quantity}*${item.name}` : `${item.name}`;
+        });
+
+        // === Skills ===
+        const skillData = {};
+        const skills = actor.system?.skills ?? {};
+        Object.entries(skills).forEach(([key, skill]) => {
+            skillData[skill.label ?? key.toUpperCase()] = actor.skills?.[key]?.mod ?? 0;
+        });
+
         return {
             name: actor.name,
-            totalwealth: Math.floor(totalWealth) // Lowercase 'totalwealth'
+            ancestry: ancestryItem?.name ?? "Unknown",
+            heritage: heritageItem?.name ?? "Unknown",
+            background: backgroundItem?.name ?? "Unknown",
+            class: classItem?.name ?? "Unknown",
+            totalwealth: Math.floor(totalWealth),
+            items: itemList,
+            skills: skillData
         };
     });
 
-    const jsonData = JSON.stringify(characterData, null, 2);
+    const jsonData = JSON.stringify(characterData);
     const blob = new Blob([jsonData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
 
     const downloadLink = document.createElement("a");
     downloadLink.href = url;
-    downloadLink.download = `character-wealth-v${MODULE_VERSION}.json`;
+    downloadLink.download = `character-data-v${MODULE_VERSION}.json`;
+    document.body.appendChild(downloadLink);
     downloadLink.click();
+    document.body.removeChild(downloadLink);
 
     URL.revokeObjectURL(url);
 
-    ui.notifications.info("📁 Character Wealth Exported Successfully!");
+    ui.notifications.info("📁 Character Data Exported Successfully!");
     console.log("📦 Export Complete. File downloaded.");
 }
 
-// === GLOBAL COMMANDS ===
+// === HOOKS ===
 Hooks.once('ready', () => {
     console.log("🟢 Module READY hook fired.");
 
-    globalThis.testExport = () => {
+    // Add to console globals for manual triggers
+    globalThis.exportFullData = () => {
         console.log("🧩 Triggered via console command.");
-        exportCharacterWealth();
+        exportFullCharacterData();
     };
 
     globalThis.moduleVersion = () => {
@@ -74,9 +105,9 @@ Hooks.once('ready', () => {
 
 // === CHAT COMMAND TRIGGER ===
 Hooks.on('chatMessage', (chatLog, messageText, chatData) => {
-    if (messageText.trim().toLowerCase() === "/exportwealth") {
+    if (messageText.trim().toLowerCase() === "/exportcharacters") {
         console.log("🧩 Triggered via chat command.");
-        exportCharacterWealth();
-        return false; // Prevents message from appearing in chat
+        exportFullCharacterData();
+        return false; // Prevents the command from posting in chat
     }
 });
