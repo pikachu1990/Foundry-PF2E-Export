@@ -1,10 +1,10 @@
-const MODULE_VERSION = "2.0.0";
+const MODULE_VERSION = "1.0.9";
 const FOLDER_NAME = "Players"; // ✅ Only export characters from this folder
 
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
 
 // === EXPORT FUNCTION ===
-function exportFullCharacterData() {
+function collectFullCharacterData() {
     console.log("📦 Exporting full character data...");
 
     const targetFolder = game.folders.find(f => f.name === FOLDER_NAME && f.type === "Actor");
@@ -72,6 +72,12 @@ function exportFullCharacterData() {
         };
     });
 
+    return characterData;
+}
+
+function exportFullCharacterData() {
+    const characterData = collectFullCharacterData();
+    if (!characterData) return;
     const jsonData = JSON.stringify(characterData);
     const blob = new Blob([jsonData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -86,6 +92,94 @@ function exportFullCharacterData() {
 
     ui.notifications.info("📁 Character Data Exported Successfully!");
     console.log("📦 Export Complete. File downloaded.");
+}
+
+// Explicit upload only. Credentials stay in this GM tab's memory and are never
+// sent through Foundry chat, world settings, or character records.
+let reviewConnection = { endpoint: "https://durval-world.sparked.network", token: "" };
+let reviewUploadRunning = false;
+
+function reviewEndpoint(value) {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
+        throw new Error("Enter the HTTPS website address, without a personal sheet link.");
+    }
+    if (url.pathname !== "/" && url.pathname !== "") {
+        throw new Error("Enter only the website's base address.");
+    }
+    return url.origin + "/integration/foundry/snapshots";
+}
+
+async function uploadForReview(endpoint, token, data) {
+    if (!game.user?.isGM) throw new Error("Only a GM can send character snapshots.");
+    if (reviewUploadRunning) throw new Error("A snapshot is already being sent.");
+    if (token.length < 32) throw new Error("Enter the configured upload key.");
+    if (!data?.length) throw new Error("No characters found directly inside Players.");
+    reviewUploadRunning = true;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+        const response = await fetch(endpoint, {
+            method: "POST", credentials: "omit", redirect: "error",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+            body: JSON.stringify(data), signal: controller.signal
+        });
+        if (!response.ok) throw new Error(`Receiver returned HTTP ${response.status}.`);
+        const result = await response.json();
+        if (!/^[a-f0-9]{64}$/.test(result.snapshot_id) || result.sheets_updated !== false) {
+            throw new Error("Unexpected receiver response; check the snapshot before retrying.");
+        }
+        return result;
+    } finally {
+        clearTimeout(timer);
+        reviewUploadRunning = false;
+    }
+}
+
+function showSendForReview() {
+    if (!game.user?.isGM) {
+        ui.notifications.warn("Only a GM can send character snapshots.");
+        return;
+    }
+    const data = collectFullCharacterData();
+    if (!data?.length) return;
+    new Dialog({
+        title: "Send characters for review",
+        content: `<p>Send ${data.length} characters from Players for review. Google Sheets will not be changed.</p>
+            <div class="form-group"><label>Receiver website (HTTPS)</label>
+            <input name="receiver" type="url" placeholder="https://your-website.example"></div>
+            <div class="form-group"><label>Upload key</label>
+            <input name="uploadKey" type="password" autocomplete="off"></div>
+            <p>The connection is remembered only until this game tab is reloaded.</p>`,
+        render: html => {
+            html.find('[name="receiver"]').val(reviewConnection.endpoint);
+            html.find('[name="uploadKey"]').val(reviewConnection.token);
+        },
+        buttons: {
+            send: { label: "Send for review", callback: async html => {
+                try {
+                    const base = html.find('[name="receiver"]').val().trim();
+                    const token = html.find('[name="uploadKey"]').val().trim();
+                    const endpoint = reviewEndpoint(base);
+                    const result = await uploadForReview(endpoint, token, data);
+                    reviewConnection = { endpoint: new URL(base).origin, token };
+                    ui.notifications.info(`Sent ${result.characters} characters for review. Sheets unchanged.`);
+                    // Receipt is not a credential; useful for retrieving this exact snapshot.
+                    new Dialog({title: "Character snapshot received",
+                        content: `<p>Snapshot reference:</p><input readonly value="${result.snapshot_id}">
+                            <p>Google Sheets has not been changed.</p>`,
+                        buttons: { close: { label: "Close" } }
+                    }).render(true);
+                } catch (error) {
+                    ui.notifications.error(error.name === "AbortError"
+                        ? "Upload timed out. Receipt is uncertain; retrying the same snapshot is safe."
+                        : "Could not send snapshot. Check the HTTPS address, upload key and connection.");
+                }
+            }},
+            cancel: { label: "Cancel" }
+        },
+        default: "cancel"
+    }).render(true);
 }
 
 // === HOOKS ===
@@ -105,6 +199,10 @@ Hooks.once('ready', () => {
 
 // === CHAT COMMAND TRIGGER ===
 Hooks.on('chatMessage', (chatLog, messageText, chatData) => {
+    if (messageText.trim().toLowerCase() === "/sendcharacters") {
+        showSendForReview();
+        return false;
+    }
     if (messageText.trim().toLowerCase() === "/exportcharacters") {
         console.log("🧩 Triggered via chat command.");
         exportFullCharacterData();
