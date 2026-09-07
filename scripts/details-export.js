@@ -1,4 +1,4 @@
-const MODULE_VERSION = "1.0.9";
+const MODULE_VERSION = "1.0.10";
 const FOLDER_NAME = "Players"; // ✅ Only export characters from this folder
 
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
@@ -60,6 +60,8 @@ function collectFullCharacterData() {
         });
 
         return {
+            actor_uuid: actor.uuid,
+            world_id: game.world.id,
             name: actor.name,
             ancestry: ancestryItem?.name ?? "Unknown",
             heritage: heritageItem?.name ?? "Unknown",

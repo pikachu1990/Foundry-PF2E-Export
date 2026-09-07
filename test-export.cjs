@@ -4,14 +4,14 @@ const assert = require('node:assert/strict');
 const {test} = require('node:test');
 const source = fs.readFileSync(__dirname + '/scripts/details-export.js', 'utf8');
 function setup() {
-  const character = {type:'character', name:'Test',
+  const character = {type:'character', name:'Test', uuid:'Actor.abcdefghijklmnop',
     system:{details:{level:{value:1}},currency:{gp:20}, skills:{ath:{label:'Athletics'}}},
     skills:{ath:{mod:7}}, items:['ancestry','heritage','background','class'].map(type=>({type,name:type}))};
   const folders = [{name:'Players',type:'Actor',contents:[character,{type:'npc',name:'Excluded'}]},
     {name:'Other',type:'Actor',contents:[{...character,name:'Other character'}]}];
   let calls = 0;
   const context = vm.createContext({console:{log(){},warn(){}},URL,setTimeout,clearTimeout,AbortController,
-    Hooks:{once(){},on(){}},ui:{notifications:{warn(){}}},game:{user:{isGM:true},folders},
+    Hooks:{once(){},on(){}},ui:{notifications:{warn(){}}},game:{user:{isGM:true},world:{id:'test-world'},folders},
     fetch:async (url, options)=>{calls++; assert.equal(options.redirect,'error');
       assert.equal(options.credentials,'omit');
       return {ok:true,json:async()=>({snapshot_id:'a'.repeat(64),sheets_updated:false,characters:1})};}});
@@ -22,6 +22,7 @@ test('collects only character actors directly in Players',()=>{
   const {context,calls} = setup();
   const data = JSON.parse(JSON.stringify(vm.runInContext('collectFullCharacterData()',context)));
   assert.equal(data.length,1); assert.equal(data[0].name,'Test');
+  assert.equal(data[0].actor_uuid,'Actor.abcdefghijklmnop'); assert.equal(data[0].world_id,'test-world');
   assert.equal(data[0].totalwealth,20); assert.equal(data[0].skills.Athletics,7);
   assert.equal(calls(),0);
 });
