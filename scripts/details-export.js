@@ -1,4 +1,4 @@
-const MODULE_VERSION = "1.0.11";
+const MODULE_VERSION = "1.0.12";
 const FOLDER_NAME = "Players"; // ✅ Only export characters from this folder
 
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
@@ -44,7 +44,8 @@ function collectFullCharacterData() {
         // remain included in the wealth calculation above.
         const rarities = ["rare", "unique"];
         const filteredItems = actor.items.filter(item => 
-            rarities.includes((item.rarity ?? item.system?.traits?.rarity ?? "").toLowerCase()) &&
+            (rarities.includes((item.rarity ?? item.system?.traits?.rarity ?? "").toLowerCase()) ||
+             (item.system?.traits?.value ?? []).some(trait => String(trait).toLowerCase() === "artifact")) &&
             ["weapon", "armor", "shield", "backpack", "equipment", "consumable", "treasure"].includes(item.type)
         );
 

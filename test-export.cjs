@@ -57,3 +57,9 @@ test('GM upload returns a review receipt; player upload is blocked',async()=>{
   await assert.rejects(vm.runInContext(`uploadForReview('https://example.com', 'u'.repeat(40), [{}])`,context));
   assert.equal(calls(),1);
 });
+test('custom artifact trait remains restricted even with a common rarity',()=>{
+  const {context}=setup();
+  context.game.folders[0].contents[0].items.push({name:'Custom Artifact',type:'equipment',rarity:'common',system:{traits:{value:['artifact']},price:{value:{gp:1000}},quantity:1}});
+  const result=JSON.parse(JSON.stringify(vm.runInContext('collectFullCharacterData()',context)))[0];
+  assert.deepEqual(result.items,['Custom Artifact']);assert.equal(result.totalwealth,1020);
+});
