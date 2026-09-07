@@ -32,6 +32,23 @@ test('rejects HTTP and personal links',()=>{
     assert.throws(()=>vm.runInContext(`reviewEndpoint(${JSON.stringify(url)})`,context));
   }
 });
+test('only rare and unique equipment is listed; every rarity still counts in wealth',()=>{
+  const {context}=setup();
+  const actor=context.game.folders[0].contents[0];
+  actor.items.push(...[
+    ['Common sword','common','weapon',10,1],
+    ['Uncommon wand','uncommon','equipment',20,2],
+    ['Rare potion','rare','consumable',30,2],
+    ['Unique shield','unique','shield',40,1],
+    ['Rare bag','rare','backpack',50,1]
+  ].map(([name,rarity,type,gp,quantity])=>({name,type,system:{traits:{rarity},price:{value:{gp}},quantity}})));
+  actor.items.push({name:'Rare ancestry',type:'ancestry',rarity:'rare'});
+  const data=JSON.parse(JSON.stringify(vm.runInContext('collectFullCharacterData()',context)))[0];
+  assert.equal(data.items_scope,'rare+');
+  assert.deepEqual(data.items,['2*Rare potion','Unique shield','Rare bag']);
+  assert.equal(data.totalwealth,220);
+  assert.equal(data.skills.Athletics,7);
+});
 test('GM upload returns a review receipt; player upload is blocked',async()=>{
   const {context,calls} = setup();
   const result=await vm.runInContext(`uploadForReview(reviewEndpoint('https://example.com'), 'u'.repeat(40), collectFullCharacterData())`,context);

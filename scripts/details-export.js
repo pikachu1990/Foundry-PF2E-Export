@@ -1,4 +1,4 @@
-const MODULE_VERSION = "1.0.10";
+const MODULE_VERSION = "1.0.11";
 const FOLDER_NAME = "Players"; // ✅ Only export characters from this folder
 
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
@@ -40,11 +40,12 @@ function collectFullCharacterData() {
 
         const totalWealth = totalCurrency + totalItemValue;
 
-        // === Uncommon+ Items ===
-        const rarities = ["uncommon", "rare", "unique"];
+        // Only restricted equipment needs individual permission; all rarities
+        // remain included in the wealth calculation above.
+        const rarities = ["rare", "unique"];
         const filteredItems = actor.items.filter(item => 
-            rarities.includes(item.rarity?.toLowerCase() ?? "") &&
-            ["weapon", "armor", "equipment", "consumable", "treasure"].includes(item.type)
+            rarities.includes((item.rarity ?? item.system?.traits?.rarity ?? "").toLowerCase()) &&
+            ["weapon", "armor", "shield", "backpack", "equipment", "consumable", "treasure"].includes(item.type)
         );
 
         const itemList = filteredItems.map(item => {
@@ -70,6 +71,7 @@ function collectFullCharacterData() {
             level: level,
             totalwealth: Math.floor(totalWealth),
             items: itemList,
+            items_scope: "rare+",
             skills: skillData
         };
     });
