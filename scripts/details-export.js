@@ -1,4 +1,4 @@
-const MODULE_VERSION = "1.0.13";
+const MODULE_VERSION = "1.0.14";
 const FOLDER_NAME = "Players"; // ✅ Only export characters from this folder
 
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
@@ -131,7 +131,9 @@ async function uploadForReview(endpoint, token, data) {
         });
         if (!response.ok) throw new Error(`Receiver returned HTTP ${response.status}.`);
         const result = await response.json();
-        if (!/^[a-f0-9]{64}$/.test(result.snapshot_id) || result.sheets_updated !== false) {
+        if (!/^[a-f0-9]{64}$/.test(result.snapshot_id) ||
+            !['pending_review', 'review_required', 'applied', 'already_applied', 'uncertain'].includes(result.status) ||
+            ![true, false, null].includes(result.sheets_updated)) {
             throw new Error("Unexpected receiver response; check the snapshot before retrying.");
         }
         return result;
@@ -141,7 +143,7 @@ async function uploadForReview(endpoint, token, data) {
     }
 }
 
-function showSendForReview() {
+function showSendForReview(deploy = false) {
     if (!game.user?.isGM) {
         ui.notifications.warn("Only a GM can send character snapshots.");
         return;
@@ -149,8 +151,10 @@ function showSendForReview() {
     const data = collectFullCharacterData();
     if (!data?.length) return;
     new Dialog({
-        title: "Send characters for review",
-        content: `<p>Send ${data.length} characters from Players for review. Google Sheets will not be changed.</p>
+        title: deploy ? "Update Google Sheets" : "Send characters for review",
+        content: `<p>${deploy
+            ? `Update Google Sheets directly from ${data.length} characters in Players. Validation must pass for the whole upload; otherwise it will be held for manual review.`
+            : `Send ${data.length} characters from Players for manual review. This command does not update Google Sheets.`}</p>
             <div class="form-group"><label>Receiver website (HTTPS)</label>
             <input name="receiver" type="url" placeholder="https://your-website.example"></div>
             <div class="form-group"><label>Upload key</label>
@@ -161,23 +165,24 @@ function showSendForReview() {
             html.find('[name="uploadKey"]').val(reviewConnection.token);
         },
         buttons: {
-            send: { label: "Send for review", callback: async html => {
+            send: { label: deploy ? "Update Google Sheets" : "Send for review", callback: async html => {
                 try {
                     const base = html.find('[name="receiver"]').val().trim();
                     const token = html.find('[name="uploadKey"]').val().trim();
-                    const endpoint = reviewEndpoint(base);
+                    const endpoint = reviewEndpoint(base) + (deploy ? '?deploy=true' : '?review_only=true');
                     const result = await uploadForReview(endpoint, token, data);
                     reviewConnection = { endpoint: new URL(base).origin, token };
-                    ui.notifications.info(`Sent ${result.characters} characters for review. Sheets unchanged.`);
+                    const outcome = uploadOutcome(result);
+                    ui.notifications.info(outcome);
                     // Receipt is not a credential; useful for retrieving this exact snapshot.
                     new Dialog({title: "Character snapshot received",
                         content: `<p>Snapshot reference:</p><input readonly value="${result.snapshot_id}">
-                            <p>Google Sheets has not been changed.</p>`,
+                            <p>${outcome}</p>`,
                         buttons: { close: { label: "Close" } }
                     }).render(true);
                 } catch (error) {
                     ui.notifications.error(error.name === "AbortError"
-                        ? "Upload timed out. Receipt is uncertain; retrying the same snapshot is safe."
+                        ? "Upload timed out. Ask for a receipt check before trying again."
                         : "Could not send snapshot. Check the HTTPS address, upload key and connection.");
                 }
             }},
@@ -188,6 +193,13 @@ function showSendForReview() {
 }
 
 // === HOOKS ===
+function uploadOutcome(result) {
+    if (result.status === 'uncertain') return 'Upload received, but the Sheets update could not be confirmed. Ask for review; do not retry to force an update.';
+    if (result.status === 'applied' || result.status === 'already_applied')
+        return result.sheets_updated ? 'Sheets update confirmed. Repeated uploads do not repeat this update.' : 'Checked successfully; no Sheets changes were needed.';
+    return 'Upload received for manual review. No automatic Sheets changes were made.';
+}
+
 Hooks.once('ready', () => {
     console.log("🟢 Module READY hook fired.");
 
@@ -208,9 +220,9 @@ function exportChatCommand(message) {
     // V14's rich-text chat wraps typed commands in a paragraph. Accept only
     // a standalone command, not arbitrary HTML, quoted text, or extra content.
     const text = message.trim();
-    const plain = text.match(/^\/(sendcharacters|exportcharacters)$/i);
+    const plain = text.match(/^\/(sendcharacters|deploycharacters|exportcharacters)$/i);
     if (plain) return plain[1].toLowerCase();
-    const paragraph = text.match(/^<p(?:\s[^>]*)?>\s*\/(sendcharacters|exportcharacters)\s*(?:<br\s*\/?>\s*)?<\/p>$/i);
+    const paragraph = text.match(/^<p(?:\s[^>]*)?>\s*\/(sendcharacters|deploycharacters|exportcharacters)\s*(?:<br\s*\/?>\s*)?<\/p>$/i);
     return paragraph ? paragraph[1].toLowerCase() : null;
 }
 
@@ -218,6 +230,10 @@ Hooks.on('chatMessage', (chatLog, messageText, chatData) => {
     const command = exportChatCommand(messageText);
     if (command === "sendcharacters") {
         showSendForReview();
+        return false;
+    }
+    if (command === "deploycharacters") {
+        showSendForReview(true);
         return false;
     }
     if (command === "exportcharacters") {
