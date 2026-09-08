@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {test} = require('node:test');
 const source = fs.readFileSync(__dirname + '/scripts/details-export.js', 'utf8');
 function setup() {
+  const hooks = {};
   const character = {type:'character', name:'Test', uuid:'Actor.abcdefghijklmnop',
     system:{details:{level:{value:1}},currency:{gp:20}, skills:{ath:{label:'Athletics'}}},
     skills:{ath:{mod:7}}, items:['ancestry','heritage','background','class'].map(type=>({type,name:type}))};
@@ -11,13 +12,30 @@ function setup() {
     {name:'Other',type:'Actor',contents:[{...character,name:'Other character'}]}];
   let calls = 0;
   const context = vm.createContext({console:{log(){},warn(){}},URL,setTimeout,clearTimeout,AbortController,
-    Hooks:{once(){},on(){}},ui:{notifications:{warn(){}}},game:{user:{isGM:true},world:{id:'test-world'},folders},
+    Hooks:{once(){},on(name,fn){hooks[name]=fn;}},ui:{notifications:{warn(){}}},game:{user:{isGM:true},world:{id:'test-world'},folders},
     fetch:async (url, options)=>{calls++; assert.equal(options.redirect,'error');
       assert.equal(options.credentials,'omit');
       return {ok:true,json:async()=>({snapshot_id:'a'.repeat(64),sheets_updated:false,characters:1})};}});
   vm.runInContext(source,context);
-  return {context,calls:()=>calls};
+  return {context,calls:()=>calls,hooks};
 }
+test('plain and V14 paragraph commands are intercepted exactly once without posting or uploading',()=>{
+  for (const name of ['sendcharacters','exportcharacters']) {
+    for (const message of [`/${name}`,`<p>/${name}</p>`,` <p class="chat"> /${name.toUpperCase()} <br></p> `]) {
+      const {context,hooks,calls}=setup();
+      vm.runInContext('globalThis.opened=0; showSendForReview=()=>{opened++}; exportFullCharacterData=()=>{opened++}',context);
+      assert.equal(hooks.chatMessage(null,message,{}),false);
+      assert.equal(context.opened,1);assert.equal(calls(),0);
+    }
+  }
+});
+test('normal messages, other commands and embedded examples remain untouched',()=>{
+  const {context,hooks}=setup();
+  vm.runInContext('showSendForReview=()=>{throw Error("unexpected")}; exportFullCharacterData=showSendForReview',context);
+  for(const message of ['hello','/roll 1d20','<p>hello</p>','<p>/sendcharacters extra</p>','<p>/sendcharacters</p><p>extra</p>','<blockquote>/sendcharacters</blockquote>','<p><code>/sendcharacters</code></p>',null]) {
+    assert.equal(hooks.chatMessage(null,message,{}),undefined);
+  }
+});
 test('collects only character actors directly in Players',()=>{
   const {context,calls} = setup();
   const data = JSON.parse(JSON.stringify(vm.runInContext('collectFullCharacterData()',context)));

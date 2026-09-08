@@ -1,4 +1,4 @@
-const MODULE_VERSION = "1.0.12";
+const MODULE_VERSION = "1.0.13";
 const FOLDER_NAME = "Players"; // ✅ Only export characters from this folder
 
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
@@ -203,12 +203,24 @@ Hooks.once('ready', () => {
 });
 
 // === CHAT COMMAND TRIGGER ===
+function exportChatCommand(message) {
+    if (typeof message !== "string") return null;
+    // V14's rich-text chat wraps typed commands in a paragraph. Accept only
+    // a standalone command, not arbitrary HTML, quoted text, or extra content.
+    const text = message.trim();
+    const plain = text.match(/^\/(sendcharacters|exportcharacters)$/i);
+    if (plain) return plain[1].toLowerCase();
+    const paragraph = text.match(/^<p(?:\s[^>]*)?>\s*\/(sendcharacters|exportcharacters)\s*(?:<br\s*\/?>\s*)?<\/p>$/i);
+    return paragraph ? paragraph[1].toLowerCase() : null;
+}
+
 Hooks.on('chatMessage', (chatLog, messageText, chatData) => {
-    if (messageText.trim().toLowerCase() === "/sendcharacters") {
+    const command = exportChatCommand(messageText);
+    if (command === "sendcharacters") {
         showSendForReview();
         return false;
     }
-    if (messageText.trim().toLowerCase() === "/exportcharacters") {
+    if (command === "exportcharacters") {
         console.log("🧩 Triggered via chat command.");
         exportFullCharacterData();
         return false; // Prevents message from appearing in chat

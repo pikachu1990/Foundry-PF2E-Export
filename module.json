@@ -2,7 +2,7 @@
   "id": "foundry-pf2e-export",
   "title": "Foundry PF2E Details Export",
   "description": "Exports character wealth and details for external tools.",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "authors": [{ "name": "pikachu1990" }],
   "esmodules": [
     "scripts/details-export.js"
