@@ -20,13 +20,13 @@ function setup() {
   return {context,calls:()=>calls,hooks};
 }
 test('plain and V14 paragraph commands are intercepted exactly once without posting or uploading',()=>{
-  for (const name of ['sendcharacters','deploycharacters','exportcharacters']) {
+  for (const name of ['review','deploy','exportcharacters']) {
     for (const message of [`/${name}`,`<p>/${name}</p>`,` <p class="chat"> /${name.toUpperCase()} <br></p> `]) {
       const {context,hooks,calls}=setup();
       vm.runInContext('globalThis.opened=0; globalThis.direct=false; showSendForReview=(deploy=false)=>{opened++;direct=deploy}; exportFullCharacterData=()=>{opened++}',context);
       assert.equal(hooks.chatMessage(null,message,{}),false);
       assert.equal(context.opened,1);assert.equal(calls(),0);
-      assert.equal(context.direct,name==='deploycharacters');
+      assert.equal(context.direct,name==='deploy');
     }
   }
 });
@@ -57,7 +57,7 @@ test('players cannot open either upload dialog',()=>{
 test('normal messages, other commands and embedded examples remain untouched',()=>{
   const {context,hooks}=setup();
   vm.runInContext('showSendForReview=()=>{throw Error("unexpected")}; exportFullCharacterData=showSendForReview',context);
-  for(const message of ['hello','/roll 1d20','<p>hello</p>','<p>/sendcharacters extra</p>','<p>/sendcharacters</p><p>extra</p>','<blockquote>/sendcharacters</blockquote>','<p><code>/sendcharacters</code></p>',null]) {
+  for(const message of ['hello','/roll 1d20','<p>hello</p>','<p>/review extra</p>','<p>/review</p><p>extra</p>','<blockquote>/review</blockquote>','<p><code>/review</code></p>',null]) {
     assert.equal(hooks.chatMessage(null,message,{}),undefined);
   }
 });
