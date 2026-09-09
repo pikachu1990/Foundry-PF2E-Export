@@ -1,4 +1,4 @@
-const MODULE_VERSION = "1.0.14";
+const MODULE_VERSION = "1.0.15";
 const FOLDER_NAME = "Players"; // ✅ Only export characters from this folder
 
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
@@ -118,7 +118,7 @@ function reviewEndpoint(value) {
 async function uploadForReview(endpoint, token, data) {
     if (!game.user?.isGM) throw new Error("Only a GM can send character snapshots.");
     if (reviewUploadRunning) throw new Error("A snapshot is already being sent.");
-    if (token.length < 32) throw new Error("Enter the configured upload key.");
+    if (token.length < 4) throw new Error("Enter the configured upload key.");
     if (!data?.length) throw new Error("No characters found directly inside Players.");
     reviewUploadRunning = true;
     const controller = new AbortController();
