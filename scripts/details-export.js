@@ -1,4 +1,4 @@
-const MODULE_VERSION = "1.0.15";
+const MODULE_VERSION = "1.0.16";
 const FOLDER_NAME = "Players"; // ✅ Only export characters from this folder
 
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
@@ -220,19 +220,19 @@ function exportChatCommand(message) {
     // V14's rich-text chat wraps typed commands in a paragraph. Accept only
     // a standalone command, not arbitrary HTML, quoted text, or extra content.
     const text = message.trim();
-    const plain = text.match(/^\/(sendcharacters|deploycharacters|exportcharacters)$/i);
+    const plain = text.match(/^\/(review|deploy|exportcharacters)$/i);
     if (plain) return plain[1].toLowerCase();
-    const paragraph = text.match(/^<p(?:\s[^>]*)?>\s*\/(sendcharacters|deploycharacters|exportcharacters)\s*(?:<br\s*\/?>\s*)?<\/p>$/i);
+    const paragraph = text.match(/^<p(?:\s[^>]*)?>\s*\/(review|deploy|exportcharacters)\s*(?:<br\s*\/?>\s*)?<\/p>$/i);
     return paragraph ? paragraph[1].toLowerCase() : null;
 }
 
 Hooks.on('chatMessage', (chatLog, messageText, chatData) => {
     const command = exportChatCommand(messageText);
-    if (command === "sendcharacters") {
+    if (command === "review") {
         showSendForReview();
         return false;
     }
-    if (command === "deploycharacters") {
+    if (command === "deploy") {
         showSendForReview(true);
         return false;
     }
