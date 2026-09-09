@@ -1,4 +1,4 @@
-const MODULE_VERSION = "1.0.16";
+const MODULE_VERSION = "1.0.17";
 const FOLDER_NAME = "Players"; // ✅ Only export characters from this folder
 
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
@@ -150,7 +150,16 @@ function showSendForReview(deploy = false) {
     }
     const data = collectFullCharacterData();
     if (!data?.length) return;
-    new Dialog({
+    // Chat's Enter can reach Foundry's document-level dialog handler after
+    // rendering. Require an explicit button action for this upload dialog.
+    // Escape and every other existing dialog key retain Foundry's behavior.
+    class UploadDialog extends Dialog {
+        _onKeyDown(event) {
+            if (event.key === "Enter" || event.code === "NumpadEnter" || event.keyCode === 13) return;
+            return super._onKeyDown(event);
+        }
+    }
+    new UploadDialog({
         title: deploy ? "Update Google Sheets" : "Send characters for review",
         content: `<p>${deploy
             ? `Update Google Sheets directly from ${data.length} characters in Players. Validation must pass for the whole upload; otherwise it will be held for manual review.`
