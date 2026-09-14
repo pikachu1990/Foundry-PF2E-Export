@@ -1,4 +1,4 @@
-const MODULE_VERSION = "1.0.18";
+const MODULE_VERSION = "1.0.19";
 const FOLDER_NAME = "Players"; // ✅ Only export characters from this folder
 
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
