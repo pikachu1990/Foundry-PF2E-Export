@@ -1,0 +1,9 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {ID,isHidden,setVisibility,draftData,escapeHTML} from '../scripts/pantheon.mjs';
+const core='Compendium.pf2e.deities.Item.abc',custom='Item.custom';
+test('installation preserves all current choices',()=>{assert.equal(isHidden(core),false);assert.equal(isHidden(custom),false)});
+test('official switch only affects exact pf2e package and accepts explicit exceptions',()=>{const p={hideCore:true};assert(isHidden(core,p));assert(!isHidden('Compendium.pf2e-other.gods.Item.a',p));assert(!isHidden(custom,p));assert(!isHidden(core,setVisibility(p,core,true)));});
+test('hide/show reversible without accumulating conflicting entries or mutating policy',()=>{const p={hideCore:false,hidden:[],shown:[]};const h=setVisibility(p,custom,false);assert(isHidden(custom,h));const s=setVisibility(h,custom,true);assert(!isHidden(custom,s));assert.deepEqual(p,{hideCore:false,hidden:[],shown:[]});assert.equal(s.hidden.length,0);assert.equal(setVisibility(s,custom,true).shown.length,1)});
+test('drafts cannot be unhidden by a show override',()=>assert(isHidden(custom,{shown:[custom]},true)));
+test('draft deity is private, native and contains no guessed mechanics',()=>{const d=draftData('Durval');assert.equal(d.type,'deity');assert.equal(d.ownership.default,0);assert(d.flags[ID].draft);for(const k of ['font','attribute','skill','weapons','rules'])assert.deepEqual(d.system[k],[]);assert.deepEqual(d.system.spells,{});assert.deepEqual(d.system.domains,{primary:[],alternate:[]});assert.equal(d.system.sanctification,null)});
+test('invalid names rejected and HTML is escaped',()=>{assert.throws(()=>draftData(' '));assert.throws(()=>draftData('x'.repeat(101)));assert.equal(escapeHTML('<img "x">&'), '&lt;img &quot;x&quot;&gt;&amp;')});
