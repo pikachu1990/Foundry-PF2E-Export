@@ -1,10 +1,10 @@
-const MODULE_VERSION = "1.0.17";
+const MODULE_VERSION = "1.0.18";
 const FOLDER_NAME = "Players"; // ✅ Only export characters from this folder
 
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
 
 // === EXPORT FUNCTION ===
-function collectFullCharacterData() {
+export function collectFullCharacterData() {
     console.log("📦 Exporting full character data...");
 
     const targetFolder = game.folders.find(f => f.name === FOLDER_NAME && f.type === "Actor");
