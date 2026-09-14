@@ -9,6 +9,9 @@ export function canonical(value) {
 }
 export function changed(before, after) { return JSON.stringify(canonical(before)) !== JSON.stringify(canonical(after)); }
 const raw = item => copy(item._source?.system?.price);
+const clientId = crypto.randomUUID();
+const handled = new Set();
+const capture = item => ({clientId, eventId:crypto.randomUUID(), at:new Date().toISOString(), price:raw(item)});
 let busy = false;
 let warned = false;
 const queueKey = () => `${ID}:price-history:${game.world.id}:${game.user.id}`;
@@ -35,13 +38,15 @@ export async function flush() {
   } catch { warn(); }
   finally { busy = false; }
 }
-function record(item, before, userId) {
+function record(item, captured, userId) {
+  if (captured.clientId !== clientId || handled.has(captured.eventId)) return;
+  const before = captured.price;
   const after = raw(item);
   if (!changed(before, after)) return;
   const user = game.users.get(userId);
   const actor = item.actor ?? (item.parent?.documentName === 'Actor' ? item.parent : null);
   const event = {
-    event_id:crypto.randomUUID(), occurred_at:new Date().toISOString(),
+    event_id:captured.eventId, occurred_at:captured.at,
     world_id:game.world.id, user_id:userId, user_name:user?.name ?? userId,
     actor_uuid:actor?.uuid ?? '', actor_name:actor?.name ?? '',
     item_uuid:item.uuid, item_name:item.name, before, after,
@@ -50,6 +55,8 @@ function record(item, before, userId) {
   };
   try { const pending = queue(); pending.push(event); localStorage.setItem(queueKey(), JSON.stringify(pending)); }
   catch { warn(); return; }
+  handled.add(captured.eventId);
+  if (handled.size > 10000) handled.delete(handled.values().next().value);
   void flush();
 }
 if (globalThis.Hooks) {
@@ -62,16 +69,17 @@ if (globalThis.Hooks) {
   // Pre-update runs on the initiating client. Log only after a successful update.
   Hooks.on('preUpdateItem', (item, change, options, userId) => {
     if (game.system.id !== 'pf2e' || userId !== game.user.id) return;
-    options.durvalPriceBefore = {uuid:item.uuid, price:raw(item)};
+    options.durvalPriceBefore ??= {};
+    options.durvalPriceBefore[item.uuid] ??= capture(item);
   });
   Hooks.on('updateItem', (item, change, options, userId) => {
-    if (game.system.id !== 'pf2e' || userId !== game.user.id || options.durvalPriceBefore?.uuid !== item.uuid) return;
-    record(item, options.durvalPriceBefore.price, userId);
+    if (game.system.id !== 'pf2e' || userId !== game.user.id || !options.durvalPriceBefore?.[item.uuid]) return;
+    record(item, options.durvalPriceBefore[item.uuid], userId);
   });
   // Actor-level embedded-item replacements can bypass the individual item workflow.
   Hooks.on('preUpdateActor', (actor, change, options, userId) => {
     if (game.system.id !== 'pf2e' || userId !== game.user.id || !Array.isArray(change.items)) return;
-    options.durvalActorPrices = Object.fromEntries(actor.items.map(i => [i.id, raw(i)]));
+    options.durvalActorPrices ??= Object.fromEntries(actor.items.map(i => [i.id, capture(i)]));
   });
   Hooks.on('updateActor', (actor, change, options, userId) => {
     if (game.system.id !== 'pf2e' || userId !== game.user.id || !options.durvalActorPrices) return;
