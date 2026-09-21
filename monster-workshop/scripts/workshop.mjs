@@ -40,15 +40,35 @@ export function sceneSource(job,folder) {
   return {...merged,folder,active:false,navigation:true,navName:'',ownership:{default:0},initialLevel:levelId,levels:[level],environment,fog,tokens:[],walls:[],lights:[],sounds:[],tiles:[],drawings:[],notes:[],regions:[],flags:{[ID]:{delivery:job.id}}};
 }
 
+export async function ensureThumbnail(scene) {
+  if(scene.thumb)return;
+  const result=await scene.createThumbnail({format:'image/png',width:300,height:100});
+  if(typeof result?.thumb!=='string'||!result.thumb.startsWith('data:image/png'))throw Error('Scene thumbnail generation failed.');
+  await scene.update({thumb:result.thumb});
+  if(!scene.thumb)throw Error('Scene thumbnail was not saved.');
+}
+
+export async function deliverThumbnail(job,env) {
+  if(!env.user?.isGM||job.world!==env.world.id)throw Error('Delivery account/world invalid.');
+  const scene=env.scenes.get(job.scene._id);
+  if(!scene||scene.flags?.[ID]?.delivery!==job.source_job)throw Error('Original Workshop Scene not found; no Scene created.');
+  const actual=scene.toObject?scene.toObject():scene;
+  const image=scene.initialLevel?.background?.src??actual.levels?.[0]?.background?.src;
+  if(image!==job.scene.image)throw Error('Scene background changed; thumbnail repair stopped.');
+  await ensureThumbnail(scene);
+  return {status:'done',scene_id:scene.id};
+}
+
 export async function deliverScene(job,env) {
   if(!env.user?.isGM||job.world!==env.world.id)throw Error('Delivery account/world invalid.');
   const folder=await sessionFolder(env,job.folder,'Scene',job.folder_id);
   const source=sceneSource(job,folder);
-  const verify=scene=>{
+  const verify=async scene=>{
     if(scene.flags?.[ID]?.delivery!==job.id)throw Error('Scene ID collision. Nothing overwritten.');
     const actual=scene.toObject?scene.toObject():scene;
     const image=scene.initialLevel?.background?.src??scene.levels?.contents?.[0]?.background?.src??actual.levels?.[0]?.background?.src??actual.background?.src;
     if(actual.width!==source.width||actual.height!==source.height||actual.grid?.size!==source.grid.size||actual.grid?.distance!==source.grid.distance||actual.tokenVision!==source.tokenVision||image!==job.scene.image||(scene.folder?.id??actual.folder)!==folder)throw Error('Scene exists but settings need inspection. No duplicate created.');
+    await ensureThumbnail(scene);
     return {status:'done',scene_id:scene.id};
   };
   const prior=env.scenes.get(source._id);
@@ -82,6 +102,7 @@ export function resolveFolder(folders,path) {
 }
 
 export async function deliver(job,env) {
+  if(job.kind==='scene_thumbnail')return deliverThumbnail(job,env);
   if(job.kind==='scene')return deliverScene(job,env);
   if(!env.user?.isGM||job.world!==env.world.id||job.actor?.type!=='npc')throw Error('Delivery account, world or NPC type is invalid.');
   if(!/^[a-zA-Z0-9]{16}$/.test(job.actor._id)||job.actor.flags?.[ID]?.delivery!==job.id)throw Error('Invalid delivery identity.');
@@ -120,7 +141,7 @@ export async function check() {
   if(!key)return;
   busy=true;
   try {
-    const identity={world:game.world.id,user:game.user.id,version:`${game.version} / PF2e ${game.system.version} / Workshop 1.1.1`,session_delivery:2};
+    const identity={world:game.world.id,user:game.user.id,version:`${game.version} / PF2e ${game.system.version} / Workshop 1.1.2`,session_delivery:3};
     const state=await request('/poll',key,identity);
     if(!state.job)return;
     let result;
