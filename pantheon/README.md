@@ -1,4 +1,4 @@
-# Durval’s World — Pantheon 1.1.0
+# Durval’s World — Pantheon 1.1.1
 
 For Foundry 14 and PF2e 8.5.x. Installs through the module manifest in this folder.
 Enable the module in the world, then open **Game Settings → Configure Settings →
@@ -108,3 +108,9 @@ checks include populated import, same-key duplicate prevention, no Durval-specif
 button, publication, backup-before-delete, preserved unrelated items, and GM guard.
 Live installation of 1.0.0 manager was confirmed by user screenshot (481 entries).
 1.1.0 still needs its post-update live check.
+
+## 1.1.1 — Item folder
+
+New manual drafts and prepared imports are created under the top-level Item folder **Durval Pantheon**. The existing folder is reused, or created if missing. Ambiguous duplicate folders stop creation rather than choosing one arbitrarily. Existing deities are not moved, overwritten or duplicated. Publication and character choices are unchanged. Update the module and reload the world to use this fix.
+
+18 automated tests pass; live-world folder creation still requires the updated module.

@@ -1,5 +1,6 @@
 import {deityIdentity,retired,affectedCharacters} from './retirement.mjs';
 import {prepareDeity,checkSpells} from './deity-data.mjs';
+import {pantheonFolder} from './folder.mjs';
 export const ID='durval-pantheon';
 export const escapeHTML=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function isHidden(uuid,policy={},draft=false){
@@ -51,6 +52,7 @@ async function gather(){
 async function createDraft(name){
   requireGM();if(createBusy)throw Error('A deity draft is already being created.');createBusy=true;
   try{const data=draftData(name);const existing=game.items.find(i=>i.type==='deity'&&i.name.trim().toLocaleLowerCase()===data.name.toLocaleLowerCase());if(existing){existing.sheet.render(true);return existing;}
+    data.folder=await pantheonFolder(game.folders, data=>Folder.create(data));
     const item=await Item.create(data);item.sheet.render(true);return item;
   }finally{createBusy=false;}
 }
@@ -62,6 +64,7 @@ export async function importDeity(spec){
     if(existing){existing.sheet.render(true);ui.notifications.info('This deity was already imported. Opened the existing entry without overwriting it.');return existing;}
     if(game.items.some(i=>i.type==='deity'&&i.name.trim().toLocaleLowerCase()===data.name.toLocaleLowerCase()))throw Error('A world deity already has this name. Edit or delete that entry first; it was not overwritten.');
     await checkSpells(data,fromUuid);
+    data.folder=await pantheonFolder(game.folders, data=>Folder.create(data));
     const item=await Item.create(data);item.sheet.render(true);refreshPickers();return item;
   }finally{createBusy=false;}
 }
