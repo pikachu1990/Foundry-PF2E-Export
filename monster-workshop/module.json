@@ -2,11 +2,11 @@
   "id": "durval-monster-workshop",
   "title": "Durval’s World — Monster Workshop",
   "description": "Delivers privately requested NPCs and configured battle maps into matching session folders. Separate from character sync.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "authors": [{"name":"Durval’s World"}],
   "compatibility": {"minimum":"14","maximum":"14"},
   "relationships": {"systems":[{"id":"pf2e","type":"system","compatibility":{"minimum":"8.5.0"}}]},
   "esmodules": ["scripts/workshop.mjs"],
   "manifest": "https://raw.githubusercontent.com/pikachu1990/Foundry-PF2E-Export/main/monster-workshop/module.json",
-  "download": "https://raw.githubusercontent.com/pikachu1990/Foundry-PF2E-Export/main/monster-workshop/durval-monster-workshop-1.1.0.zip"
+  "download": "https://raw.githubusercontent.com/pikachu1990/Foundry-PF2E-Export/main/monster-workshop/durval-monster-workshop-1.1.1.zip"
 }

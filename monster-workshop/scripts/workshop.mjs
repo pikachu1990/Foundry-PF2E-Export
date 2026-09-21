@@ -32,10 +32,12 @@ export function sceneSource(job,folder) {
   if(typeof s.image!=='string'||!s.image.startsWith(BASE+'/art/'))throw Error('Map must use Workshop artwork.');
   const merged={...structuredClone(SCENE_DEFAULTS),...structuredClone(s),grid:{...SCENE_DEFAULTS.grid,...s.grid}};
   if(merged.grid.type!==1||!Number.isFinite(merged.grid.size)||merged.grid.size<50||merged.grid.size>1000||!Number.isFinite(merged.grid.distance)||merged.grid.distance<=0)throw Error('Invalid map grid.');
-  delete merged.image;
-  // Official migration translates legacy single-level background/environment fields
-  // into v14's embedded Level before native validation and creation.
-  return {...merged,folder,active:false,navigation:true,navName:'',ownership:{default:0},background:{src:s.image},tokens:[],walls:[],lights:[],sounds:[],tiles:[],drawings:[],notes:[],regions:[],flags:{[ID]:{delivery:job.id}}};
+  const levelId='defaultLevel0000';
+  const level={_id:levelId,name:'Map',background:{src:s.image,color:merged.backgroundColor},elevation:{bottom:0,top:20},textures:{anchorX:0.5,anchorY:0.5,offsetX:0,offsetY:0,fit:'fill',scaleX:1,scaleY:1,rotation:0}};
+  const environment={darknessLevel:merged.darkness,globalLight:{enabled:merged.globalLight}};
+  const fog={mode:merged.fogExploration?1:0};
+  for(const key of ['image','backgroundColor','darkness','globalLight','fogExploration'])delete merged[key];
+  return {...merged,folder,active:false,navigation:true,navName:'',ownership:{default:0},initialLevel:levelId,levels:[level],environment,fog,tokens:[],walls:[],lights:[],sounds:[],tiles:[],drawings:[],notes:[],regions:[],flags:{[ID]:{delivery:job.id}}};
 }
 
 export async function deliverScene(job,env) {
@@ -49,7 +51,16 @@ export async function deliverScene(job,env) {
     if(actual.width!==source.width||actual.height!==source.height||actual.grid?.size!==source.grid.size||actual.grid?.distance!==source.grid.distance||actual.tokenVision!==source.tokenVision||image!==job.scene.image||(scene.folder?.id??actual.folder)!==folder)throw Error('Scene exists but settings need inspection. No duplicate created.');
     return {status:'done',scene_id:scene.id};
   };
-  const prior=env.scenes.get(source._id);if(prior)return verify(prior);
+  const prior=env.scenes.get(source._id);
+  if(prior){
+    if(job.repair_empty_scene){
+      const actual=prior.toObject?prior.toObject():prior;
+      if(prior.flags?.[ID]?.delivery!==job.id||(prior.folder?.id??actual.folder)!==folder||actual.width!==source.width||actual.height!==source.height||actual.levels?.length!==1||(actual.levels[0].background?.src && actual.levels[0].background.src!==job.scene.image)||['tokens','walls','lights','tiles','drawings','notes','regions','sounds'].some(k=>actual[k]?.length))throw Error('Scene is not an untouched empty Workshop delivery; repair stopped.');
+      await prior.updateEmbeddedDocuments('Level',[{_id:actual.levels[0]._id,'background.src':job.scene.image,'background.color':source.levels[0].background.color}]);
+      await prior.update({'environment.globalLight.enabled':source.environment.globalLight.enabled,'environment.darknessLevel':source.environment.darknessLevel,'fog.mode':source.fog.mode});
+    }
+    return verify(prior);
+  }
   // Validate before create, never activate or change the GM's current view.
   const data=env.prepareScene?await env.prepareScene(source):source;
   let created;
@@ -109,7 +120,7 @@ export async function check() {
   if(!key)return;
   busy=true;
   try {
-    const identity={world:game.world.id,user:game.user.id,version:`${game.version} / PF2e ${game.system.version}`,session_delivery:1};
+    const identity={world:game.world.id,user:game.user.id,version:`${game.version} / PF2e ${game.system.version} / Workshop 1.1.1`,session_delivery:2};
     const state=await request('/poll',key,identity);
     if(!state.job)return;
     let result;
