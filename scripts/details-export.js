@@ -1,7 +1,17 @@
-const MODULE_VERSION = "1.0.19";
+const MODULE_VERSION = "1.0.20";
 const FOLDER_NAME = "Players"; // ✅ Only export characters from this folder
 
 console.log(`✅ Module script loaded! Version: ${MODULE_VERSION}`);
+
+function nativeWealth(actor) {
+    // Use PF2e's prepared inventory total, including currency exactly once.
+    // Missing/incompatible data must stop the export, never silently become zero.
+    const copper = actor.inventory?.totalWealth?.copperValue;
+    if (!Number.isSafeInteger(copper) || copper < 0 || copper > 100_000_000_000) {
+        throw new Error(`Cannot read PF2e inventory wealth for ${actor.name}. No characters were exported.`);
+    }
+    return copper / 100;
+}
 
 // === EXPORT FUNCTION ===
 export function collectFullCharacterData() {
@@ -24,21 +34,7 @@ export function collectFullCharacterData() {
         const level = actor.system?.details?.level?.value ?? 0;
 
         // === Wealth Calculation ===
-        const coins = actor.system?.currency ?? {};
-        const totalCurrency =
-            (coins.gp ?? 0) + 
-            (coins.sp ?? 0) / 10 + 
-            (coins.cp ?? 0) / 100 + 
-            (coins.pp ?? 0) * 10;
-
-        let totalItemValue = 0;
-        actor.items.forEach(item => {
-            const price = item.system?.price?.value?.gp ?? 0;
-            const quantity = item.system?.quantity ?? 1;
-            totalItemValue += price * quantity;
-        });
-
-        const totalWealth = totalCurrency + totalItemValue;
+        const totalWealth = nativeWealth(actor);
 
         // Only restricted equipment needs individual permission; all rarities
         // remain included in the wealth calculation above.
@@ -70,7 +66,8 @@ export function collectFullCharacterData() {
             background: backgroundItem?.name ?? "Unknown",
             class: classItem?.name ?? "Unknown",
             level: level,
-            totalwealth: Math.floor(totalWealth),
+            totalwealth: totalWealth,
+            wealth_method: 'pf2e-inventory-v1',
             items: itemList,
             items_scope: "rare+",
             skills: skillData
@@ -81,7 +78,9 @@ export function collectFullCharacterData() {
 }
 
 function exportFullCharacterData() {
-    const characterData = collectFullCharacterData();
+    let characterData;
+    try { characterData = collectFullCharacterData(); }
+    catch (error) { ui.notifications.error(error.message); return; }
     if (!characterData) return;
     const jsonData = JSON.stringify(characterData);
     const blob = new Blob([jsonData], { type: "application/json" });
@@ -148,7 +147,9 @@ function showSendForReview(deploy = false) {
         ui.notifications.warn("Only a GM can send character snapshots.");
         return;
     }
-    const data = collectFullCharacterData();
+    let data;
+    try { data = collectFullCharacterData(); }
+    catch (error) { ui.notifications.error(error.message); return; }
     if (!data?.length) return;
     // Chat's Enter can reach Foundry's document-level dialog handler after
     // rendering. Require an explicit button action for this upload dialog.
