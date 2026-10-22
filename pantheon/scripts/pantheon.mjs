@@ -30,7 +30,7 @@ function installPicker(app,element){
     const current=policy();let count=0;
     for(const row of root.querySelectorAll('li[data-uuid]')){const hidden=isHidden(row.dataset.uuid,current,uuidDraft(row.dataset.uuid));row.classList.toggle('dw-pantheon-hidden',hidden);if(hidden)count++;}
     let note=root.querySelector('.dw-pantheon-filter-note');
-    if(!note){note=document.createElement('p');note.className='dw-pantheon-filter-note';(root.querySelector('header.search')??root.querySelector('.window-content')??root).append(note);}
+    if(!note){note=document.createElement('p');note.className='dw-pantheon-filter-note';(root.querySelector('header.search, search')??root.querySelector('.window-content')??root).append(note);}
     const message=count?`${count} campaign-hidden or draft ${count===1?'deity':'deities'}. Manage choices in Module Settings → Pantheon manager.`:'';
     if(note.textContent!==message)note.textContent=message;
     note.hidden=!count;

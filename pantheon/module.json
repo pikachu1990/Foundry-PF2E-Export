@@ -2,7 +2,7 @@
   "id": "durval-pantheon",
   "title": "Durval’s World — Pantheon",
   "description": "GM deity drafts and reversible filtering of the native PF2e deity picker. Uses native deity mechanics.",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "authors": [
     {
       "name": "Durval’s World"
@@ -19,7 +19,8 @@
         "type": "system",
         "compatibility": {
           "minimum": "8.5.0",
-          "maximum": "8.5.99"
+          "maximum": "8.6.99",
+          "verified": "8.6.1"
         }
       }
     ]
@@ -31,5 +32,5 @@
     "styles/pantheon.css"
   ],
   "manifest": "https://raw.githubusercontent.com/pikachu1990/Foundry-PF2E-Export/main/pantheon/module.json",
-  "download": "https://raw.githubusercontent.com/pikachu1990/Foundry-PF2E-Export/main/pantheon/durval-pantheon-1.1.1.zip"
+  "download": "https://raw.githubusercontent.com/pikachu1990/Foundry-PF2E-Export/main/pantheon/durval-pantheon-1.1.2.zip"
 }

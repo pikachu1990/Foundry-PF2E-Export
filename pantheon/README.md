@@ -1,6 +1,6 @@
-# Durval’s World — Pantheon 1.1.1
+# Durval’s World — Pantheon 1.1.2
 
-For Foundry 14 and PF2e 8.5.x. Installs through the module manifest in this folder.
+For Foundry 14 and PF2e 8.5.x and 8.6.x. Installs through the module manifest in this folder.
 Enable the module in the world, then open **Game Settings → Configure Settings →
 Module Settings → Durval’s World — Pantheon → Manage deities**.
 
